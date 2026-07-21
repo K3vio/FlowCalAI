@@ -6,7 +6,6 @@ import {
 
 function timeToMinutes(time) {
   const [hours, minutes] = time.split(":").map(Number);
-
   return hours * 60 + minutes;
 }
 
@@ -19,11 +18,8 @@ function isValidDate(date) {
     return false;
   }
 
-  const [year, month, day] =
-    date.split("-").map(Number);
-
-  const parsed =
-    new Date(Date.UTC(year, month - 1, day));
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
 
   return (
     parsed.getUTCFullYear() === year &&
@@ -34,56 +30,42 @@ function isValidDate(date) {
 
 export function validateEvent(input) {
   if (!input || typeof input !== "object") {
-    throw new Error(
-      "Request body must be a JSON object."
-    );
+    throw new Error("Request body must be a JSON object.");
   }
 
-  const title =
-    typeof input.title === "string"
-      ? input.title.trim()
-      : "";
+  // Accept eventTitle from frontend.
+  const eventTitle = 
+    typeof input.eventTitle === "string"
+      ? input.eventTitle.trim()
+      : typeof input.title === "string"
+        ? input.title.trim()
+        : "";
 
-  if (!title) {
-    throw new Error("Title is required.");
+  if (!eventTitle) {
+    throw new Error("Event title is required.");
   }
 
   if (!isValidDate(input.date)) {
-    throw new Error(
-      "Date must be a valid YYYY-MM-DD date."
-    );
+    throw new Error("Date must be a valid YYYY-MM-DD date.");
   }
 
   if (!isValidTime(input.start)) {
-    throw new Error(
-      "Start must use HH:mm format."
-    );
+    throw new Error("Start must use HH:mm format.");
   }
 
   if (!isValidTime(input.end)) {
-    throw new Error(
-      "End must use HH:mm format."
-    );
+    throw new Error("End must use HH:mm format.");
   }
 
-  const startMinutes =
-    timeToMinutes(input.start);
-
-  const endMinutes =
-    timeToMinutes(input.end);
+  const startMinutes = timeToMinutes(input.start);
+  const endMinutes = timeToMinutes(input.end);
 
   if (startMinutes >= endMinutes) {
-    throw new Error(
-      "Start time must be earlier than end time."
-    );
+    throw new Error("Start time must be earlier than end time.");
   }
 
-  if (
-    !["fixed", "movable"].includes(input.type)
-  ) {
-    throw new Error(
-      'Type must be either "fixed" or "movable".'
-    );
+  if (!["fixed", "movable"].includes(input.type)) {
+    throw new Error('Type must be either "fixed" or "movable".');
   }
 
   if (
@@ -91,58 +73,57 @@ export function validateEvent(input) {
     input.priority < 1 ||
     input.priority > 10
   ) {
-    throw new Error(
-      "Priority must be an integer from 1 to 10."
-    );
+    throw new Error("Priority must be an integer from 1 to 10.");
   }
 
   return {
-    title,
+    eventTitle,
     date: input.date,
+    location: input.location || "",
     start: input.start,
     end: input.end,
-
-    duration_minutes:
-      endMinutes - startMinutes,
-
+    durationMinutes: endMinutes - startMinutes,
     type: input.type,
-    priority: input.priority
+    priority: input.priority,
+
+    // Optional fields matching dataStore.json
+    category: input.category || null,
+    recurrence: input.recurrence || null,
+    flexibilityWindow: input.flexibilityWindow || null,
+    dependencies: input.dependencies || [],
+    energyLevel: input.energyLevel || null,
+    travelBufferMinutes: input.travelBufferMinutes || 0,
+    hardDeadline: input.hardDeadline || false,
+    status: input.status || "confirmed",
+    notes: input.notes || ""
   };
 }
 
-export function eventsOverlap(
-  newEvent,
-  existingEvent
-) {
-  if (
-    newEvent.date !== existingEvent.date
-  ) {
+export function eventsOverlap(newEvent, existingEvent) {
+  if (newEvent.date !== existingEvent.date) {
     return false;
   }
 
   return (
     timeToMinutes(newEvent.start) <
       timeToMinutes(existingEvent.end) &&
-
     timeToMinutes(newEvent.end) >
       timeToMinutes(existingEvent.start)
   );
 }
 
 export function createEvent(input) {
-
-  // 1. Validate first.
+  // 1. Validate first
   const candidate = validateEvent(input);
 
   const currentEvents = getAllEvents();
 
-  // 2. Find ALL clashes.
-  const conflicts = currentEvents.filter(
-    (event) =>
-      eventsOverlap(candidate, event)
+  // 2. Find all clashes
+  const conflicts = currentEvents.filter((event) =>
+    eventsOverlap(candidate, event)
   );
 
-  // 3. Fixed events can NEVER be replaced.
+  // 3. Fixed events can never be replaced
   const fixedConflicts = conflicts.filter(
     (event) => event.type === "fixed"
   );
@@ -150,63 +131,45 @@ export function createEvent(input) {
   if (fixedConflicts.length > 0) {
     return {
       status: "conflict",
-
-      reason:
-        "fixed_event_conflict",
-
-      message:
-        "This event overlaps with a fixed event.",
-
-      conflicting_events:
-        fixedConflicts
+      reason: "fixed_event_conflict",
+      message: "This event overlaps with a fixed event.",
+      conflicting_events: fixedConflicts
     };
   }
 
-  // 4. Check priorities.
-  const blockingConflicts =
-    conflicts.filter(
-      (event) =>
-        event.priority >=
-        candidate.priority
-    );
+  // 4. Check priority conflicts
+  const blockingConflicts = conflicts.filter(
+    (event) => event.priority >= candidate.priority
+  );
 
   if (blockingConflicts.length > 0) {
     return {
       status: "conflict",
-
-      reason:
-        "priority_conflict",
-
+      reason: "priority_conflict",
       message:
         "The requested time is occupied by an event with equal or higher priority.",
-
-      conflicting_events:
-        blockingConflicts
+      conflicting_events: blockingConflicts
     };
   }
 
-  // Nothing has been modified before
-  // ALL validation succeeds.
+  const now = new Date().toISOString();
 
+  // 5. Only create after all checks pass
   const event = {
     id: generateEventId(),
-    ...candidate
+    ...candidate,
+    createdAt: now,
+    updatedAt: now
   };
 
-  const displacedEvents =
-    commitEvent(
-      event,
-
-      conflicts.map(
-        (conflict) => conflict.id
-      )
-    );
+  const displacedEvents = commitEvent(
+    event,
+    conflicts.map((conflict) => conflict.id)
+  );
 
   return {
     status: "success",
     event,
-
-    displaced_events:
-      displacedEvents
+    displaced_events: displacedEvents
   };
 }
