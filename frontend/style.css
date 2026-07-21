@@ -11,10 +11,12 @@
             radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 25%), #f8fafc;
     }
 
+    /* Minimum calendar width */
     .calendar-grid {
         min-width: 980px;
     }
 
+    /* Day column */
     .day-column {
         position: relative;
         height: calc((var(--end-hour) - var(--start-hour)) * var(--hour-height));
@@ -27,6 +29,7 @@
         );
     }
 
+    /* Draws line for each hour*/
     .half-hour-lines {
       background-image: repeating-linear-gradient(
         to bottom,
