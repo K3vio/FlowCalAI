@@ -1,6 +1,7 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import eventRoutes from "./routes/eventRoutes.js";
+import eventRoute from "./routes/eventRoute.js";
 
 const app = express();
 
@@ -23,7 +24,7 @@ app.get("/api/health", (_req, res) => {
 
 
 // Calendar endpoints.
-app.use("/api/events", eventRoutes);
+app.use("/api/events", eventRoute);
 
 
 // Unknown route.
