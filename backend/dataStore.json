@@ -1,0 +1,70 @@
+{
+  "userProfile": {
+    "id": 1,
+    "name": "You",
+    "workStart": "09:00",
+    "workEnd": "17:00",
+    "deepWorkWindows": [
+      { "start": "09:00", "end": "11:00" }
+    ],
+    "dndWindows": [
+      { "start": "22:00", "end": "07:00" }
+    ],
+    "homeBaseLocation": "Home",
+    "commonLocations": {
+      "unsw": "UNSW Kensington"
+    },
+    "timezone": "Australia/Sydney"
+  },
+
+  "events": [
+    {
+      "id": 1,
+      "date": "2025-07-21",
+      "location": "UNSW",
+      "start": "12:00",
+      "end": "16:00",
+      "durationMinutes": 240,
+      "eventTitle": "Class",
+      "type": "fixed",
+      "priority": 10,
+      "category": "academic",
+      "recurrence": null,
+      "flexibilityWindow": null,
+      "dependencies": [],
+      "energyLevel": "medium",
+      "travelBufferMinutes": 15,
+      "hardDeadline": false,
+      "status": "confirmed",
+      "notes": "",
+      "createdAt": "2026-07-21T14:12:51Z",
+      "updatedAt": "2026-07-21T14:12:51Z"
+    }
+  ],
+
+  "taskHistory": [
+    {
+      "id": 1,
+      "eventId": 1,
+      "action": "rescheduled",
+      "originalDate": "2025-07-20",
+      "originalStart": "10:00",
+      "newDate": "2025-07-21",
+      "newStart": "12:00",
+      "reason": "conflict with class",
+      "timestamp": "2026-07-21T14:12:51Z"
+    }
+  ],
+
+  "capacityModel": {
+    "2025-07-21": {
+      "totalFlexibleMinutesAvailable": 240,
+      "totalFlexibleMinutesScheduled": 180,
+      "overloadFlag": false
+    }
+  },
+
+  "locationsCache": {
+    "UNSW": { "lat": -33.9173, "lng": 151.2313, "lastGeocoded": "2026-07-21T14:12:51Z" }
+  }
+}
