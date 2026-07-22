@@ -382,14 +382,67 @@ async function sendMessage() {
     addMessage('bot', p.message);
 
     // 'ask' just shows the question and waits for the next user reply.
-    // 'add'/'delete' show confirm buttons.
-    if (p.action === 'add' || p.action === 'delete') {
+    // 'add'/'delete'/'move' show confirm buttons.
+    if (p.action === 'add' || p.action === 'delete' || p.action === 'move') {
       showConfirm(p);
     }
   } catch (err) {
     thinking.remove();
     addMessage('bot', "can't reach the server. is the proxy running on :3000?");
   }
+}
+
+// render slot options for a move; picking one does delete-old + add-new
+function showMoveOptions(proposal) {
+  const box = document.createElement('div');
+  box.className = 'move-options';
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  proposal.slots.forEach(slot => {
+    const btn = document.createElement('button');
+    btn.className = 'move-opt';
+
+    const [y, m, d] = slot.date.split('-').map(Number);
+    const dow = dayNames[new Date(y, m - 1, d).getDay()];
+    let label = `${dow} ${d}/${m} · ${slot.start}–${slot.end}`;
+    if (slot.clashesWith) label += ` ⚠️ overlaps ${slot.clashesWith}`;
+    btn.textContent = label;
+
+    btn.addEventListener('click', async () => {
+      box.remove();
+      try {
+        // recreate first, then remove the old, so a failure doesn't lose the event
+        await saveEvent({
+          date: slot.date,
+          title: proposal.title,
+          start: slot.start,
+          end: slot.end,
+          fixed: false,           // moved events stay flexible
+          priority: proposal.priority
+        });
+        await removeEvent(proposal.id);
+        render();
+        addMessage('bot', `Moved "${proposal.title}" to ${label.replace(/ ⚠️.*/, '')}.`);
+      } catch (err) {
+        addMessage('bot', err.message || "Couldn't move it.");
+      }
+    });
+
+    box.appendChild(btn);
+  });
+
+  const cancel = document.createElement('button');
+  cancel.className = 'move-opt cancel';
+  cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', () => {
+    box.remove();
+    addMessage('bot', 'Okay, left it where it is.');
+  });
+  box.appendChild(cancel);
+
+  chatBody.appendChild(box);
+  chatBody.scrollTop = chatBody.scrollHeight;
 }
 
 // render a little yes/no under the last bot message
@@ -411,6 +464,10 @@ function showConfirm(proposal) {
       if (proposal.action === 'add') {
         await saveEvent(proposal.event);   // same guarded endpoint as manual add
       } else if (proposal.action === 'delete') {
+        await removeEvent(proposal.id);
+      } else if (proposal.action === 'move') {
+        // save the new one first, then remove the old, so a failure never loses it
+        await saveEvent(proposal.event);
         await removeEvent(proposal.id);
       }
       render();
