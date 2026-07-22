@@ -558,3 +558,28 @@ body {
 .confirm-yes:hover { opacity: 0.9; }
 .confirm-no { background: var(--card); color: var(--muted); }
 .confirm-no:hover { background: #f2f3f5; }
+
+/* move slot options */
+.move-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-self: flex-start;
+  max-width: 95%;
+}
+
+.move-opt {
+  text-align: left;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.move-opt:hover { background: var(--accent-soft); border-color: var(--accent); }
+.move-opt.cancel { color: var(--muted); font-weight: 600; text-align: center; }
+.move-opt.cancel:hover { background: #f2f3f5; border-color: var(--line); }
