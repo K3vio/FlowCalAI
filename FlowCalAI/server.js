@@ -10,11 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ---------- datastore ---------- */
 const STORE_PATH = './store.json';
 
-// in-memory copy. events is a flat array of event objects.
-// { events: [ {id, date, title, start, end, fixed, priority} ], facts: [], nextId: 1 }
+// everything lives here in memory. events is a flat list of event objects.
+// shape: { events: [ {id, date, title, start, end, fixed, priority} ], facts: [], nextId: 1 }
 let store = { events: [], facts: [], nextId: 1 };
 
 function loadStore() {
@@ -34,12 +33,11 @@ function saveStore() {
   fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
 }
 
-/* ---------- validation ---------- */
 // date must be YYYY-MM-DD
 function isValidDate(d) {
   return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
 }
-// time must be HH:MM, or empty/undefined (times are optional)
+// time must be HH:MM, or empty/undefined since times are optional
 function isValidTime(t) {
   return t === undefined || t === '' || (typeof t === 'string' && /^\d{2}:\d{2}$/.test(t));
 }
@@ -67,9 +65,8 @@ function cleanEvent(raw) {
 
 loadStore();
 
-/* ---------- clash detection ---------- */
 // two timed events overlap if one starts before the other ends.
-// no times = can't clash. HH:MM strings compare correctly as strings.
+// no times means they can't clash. HH:MM strings compare correctly as strings.
 function overlaps(a, b) {
   if (!a.start || !a.end || !b.start || !b.end) return false;
   return a.start < b.end && b.start < a.end;
@@ -83,8 +80,6 @@ function findFixedClash(newEvt) {
     overlaps(e, newEvt)
   );
 }
-
-/* ---------- move / slot finding ---------- */
 
 // minutes helpers so we can do time math, then convert back to HH:MM
 function toMin(hhmm) {
@@ -134,8 +129,6 @@ function findSlots(durationMin, fromDate, excludeId, want = 4) {
   return results;
 }
 
-/* ---------- events endpoints ---------- */
-
 // browser loads all events on startup
 app.get('/events', (req, res) => {
   res.json({ events: store.events });
@@ -174,8 +167,6 @@ app.delete('/events', (req, res) => {
   saveStore();
   res.json({ events: store.events });
 });
-
-/* ---------- assistant (proposes actions, never executes) ---------- */
 
 // today's date so the model can resolve "friday", "tomorrow", etc.
 function todayISO() {
@@ -350,7 +341,6 @@ function parseProposal(rawText) {
   return { action: 'none', message: msg };
 }
 
-/* ---------- model call with fallbacks + retries ---------- */
 // tries each model in order. for each, retries a few times on transient 503/429
 // errors with growing backoff. only moves to the next model once retries are
 // exhausted. makes a visible failure almost impossible unless everything's down.
