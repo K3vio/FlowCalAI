@@ -121,7 +121,7 @@ function render() {
       wrap.className = 'events';
       dayEvents.slice(0, 2).forEach(ev => {
         const e = document.createElement('div');
-        e.className = 'event';
+        e.className = `event pri-${ev.priority || 2}${ev.fixed ? ' is-fixed' : ''}`;
         const t = timeLabel(ev);
         const label = t ? `${t} ${ev.title}` : ev.title;
         e.textContent = label;
