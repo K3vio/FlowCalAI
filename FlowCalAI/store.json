@@ -1,5 +1,24 @@
 {
-  "events": [],
+  "events": [
+    {
+      "date": "2026-07-01",
+      "title": "aaa",
+      "start": "00:30",
+      "end": "01:00",
+      "fixed": false,
+      "priority": 2,
+      "id": "evt_19"
+    },
+    {
+      "date": "2026-07-01",
+      "title": "bbb",
+      "start": "00:30",
+      "end": "02:45",
+      "fixed": true,
+      "priority": 2,
+      "id": "evt_21"
+    }
+  ],
   "facts": [],
-  "nextId": 16
+  "nextId": 22
 }
