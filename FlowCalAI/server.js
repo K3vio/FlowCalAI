@@ -103,9 +103,6 @@ function addDays(iso, n) {
 }
 
 // scan forward from a start date for viable slots of `durationMin` minutes.
-// skips any slot overlapping a FIXED event entirely. a slot overlapping a
-// FLEXIBLE event is included but flagged. returns up to `want` candidates.
-// excludeId is the event being moved (don't clash it against itself).
 function findSlots(durationMin, fromDate, excludeId, want = 4) {
   const DAY_START = 8 * 60;   // 08:00
   const DAY_END = 22 * 60;    // 22:00
@@ -122,14 +119,9 @@ function findSlots(durationMin, fromDate, excludeId, want = 4) {
 
     for (let start = DAY_START; start + durationMin <= DAY_END && results.length < want; start += STEP) {
       const slot = { start: toHHMM(start), end: toHHMM(start + durationMin) };
-
-      // hard skip if it hits a fixed event
       const hitsFixed = dayEvents.some(e => e.fixed && overlaps(slot, e));
       if (hitsFixed) continue;
-
-      // flag (but allow) if it hits a flexible event
       const flexHit = dayEvents.find(e => !e.fixed && overlaps(slot, e));
-
       results.push({
         date,
         start: slot.start,
@@ -277,7 +269,6 @@ function parseProposal(rawText) {
     if (typeof s !== 'string' || !s.trim()) return fallback;
     s = s.trim();
     if (s.length <= 140) return s;
-    // cut at 140 but try not to slice a word in half
     const cut = s.slice(0, 140);
     const lastSpace = cut.lastIndexOf(' ');
     return (lastSpace > 100 ? cut.slice(0, lastSpace) : cut).trim() + '…';
@@ -290,10 +281,8 @@ function parseProposal(rawText) {
   }
 
   if (p.action === 'add') {
-    // reuse the SAME cleaner the manual add uses. if it fails, no proposal.
     const clean = cleanEvent(p.event || {});
     if (!clean) return { action: 'none', message: "I couldn't build a valid event from that." };
-    // check the clash here too so we can warn before the user confirms
     const clash = findFixedClash(clean);
     if (clash) {
       return { action: 'none', message: `That clashes with "${clash.title}" (${clash.start}-${clash.end}), so I can't add it.` };
@@ -316,13 +305,11 @@ function parseProposal(rawText) {
       return { action: 'none', message: `"${target.title}" is fixed, so I can't move it.` };
     }
 
-    // the AI supplies the new date/start/end in p.event. build the candidate.
     const e = p.event || {};
     const newDate = isValidDate(e.date) ? e.date : target.date;
     const newStart = /^\d{2}:\d{2}$/.test(e.start || '') ? e.start : target.start;
     const newEnd = /^\d{2}:\d{2}$/.test(e.end || '') ? e.end : target.end;
 
-    // need a full time window to move to
     if (!newStart || !newEnd) {
       return { action: 'ask', message: `What time should "${target.title}" move to?` };
     }
@@ -340,7 +327,6 @@ function parseProposal(rawText) {
       priority: target.priority
     };
 
-    // block if the new spot lands on a fixed event
     const clash = findFixedClash(candidate);
     if (clash) {
       return { action: 'none', message: `That clashes with fixed event "${clash.title}" (${clash.start}-${clash.end}).` };
@@ -364,6 +350,35 @@ function parseProposal(rawText) {
   return { action: 'none', message: msg };
 }
 
+/* ---------- model call with fallbacks + retries ---------- */
+// tries each model in order. for each, retries a few times on transient 503/429
+// errors with growing backoff. only moves to the next model once retries are
+// exhausted. makes a visible failure almost impossible unless everything's down.
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+
+function isTransient(err) {
+  const status = String(err?.status || err?.code || '');
+  return status.includes('503') || status.includes('429') ||
+         /unavailable|overload|high demand|rate/i.test(err?.message || '');
+}
+
+async function generateWithFallback(prompt) {
+  let lastErr;
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await ai.models.generateContent({ model, contents: prompt });
+      } catch (err) {
+        lastErr = err;
+        if (!isTransient(err)) throw err;   // real error (bad key etc), don't retry
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt))); // 0.5s,1s,2s
+      }
+    }
+    console.log(`${model} unavailable, falling back to next model...`);
+  }
+  throw lastErr;
+}
+
 app.post('/assistant', async (req, res) => {
   try {
     const { message, history } = req.body;
@@ -383,15 +398,16 @@ app.post('/assistant', async (req, res) => {
     const prompt = buildAssistantPrompt(message) +
       (past ? `\n\nCONVERSATION SO FAR:\n${past}` : '');
 
-    const result = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt
-    });
+    const result = await generateWithFallback(prompt);
 
     const proposal = parseProposal(result.text);
     res.json({ proposal });
   } catch (err) {
     console.error(err);
+    const overloaded = isTransient(err);
+    if (overloaded) {
+      return res.status(503).json({ error: "The model's busy right now. Give it a second and try again." });
+    }
     res.status(500).json({ error: 'something broke on the server' });
   }
 });

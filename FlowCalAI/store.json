@@ -1,15 +1,5 @@
 {
-  "events": [
-    {
-      "date": "2026-10-14",
-      "title": "asdasd",
-      "start": "00:30",
-      "end": "01:15",
-      "fixed": true,
-      "priority": 2,
-      "id": "evt_27"
-    }
-  ],
+  "events": [],
   "facts": [],
-  "nextId": 28
+  "nextId": 1
 }
