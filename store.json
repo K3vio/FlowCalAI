@@ -8,7 +8,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_1",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-01",
@@ -18,7 +18,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_2",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-02",
@@ -28,7 +28,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_3",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-02",
@@ -38,7 +38,7 @@
       "fixed": false,
       "priority": 3,
       "id": "evt_4",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-03",
@@ -48,7 +48,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_5",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-06",
@@ -58,7 +58,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_6",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-06",
@@ -68,7 +68,7 @@
       "fixed": true,
       "priority": 3,
       "id": "evt_7",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-07",
@@ -78,7 +78,7 @@
       "fixed": true,
       "priority": 3,
       "id": "evt_8",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-07",
@@ -88,7 +88,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_9",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-08",
@@ -98,7 +98,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_10",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-09",
@@ -108,7 +108,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_11",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-09",
@@ -118,7 +118,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_12",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-10",
@@ -128,7 +128,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_13",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-10",
@@ -138,7 +138,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_14",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-11",
@@ -148,7 +148,7 @@
       "fixed": false,
       "priority": 2,
       "id": "evt_15",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-13",
