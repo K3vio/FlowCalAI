@@ -7,7 +7,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_1"
+      "id": "evt_1",
+      "done": false
     },
     {
       "date": "2026-07-01",
@@ -16,7 +17,8 @@
       "end": "18:30",
       "fixed": false,
       "priority": 1,
-      "id": "evt_2"
+      "id": "evt_2",
+      "done": false
     },
     {
       "date": "2026-07-02",
@@ -25,7 +27,8 @@
       "end": "14:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_3"
+      "id": "evt_3",
+      "done": false
     },
     {
       "date": "2026-07-02",
@@ -34,7 +37,8 @@
       "end": "21:30",
       "fixed": false,
       "priority": 3,
-      "id": "evt_4"
+      "id": "evt_4",
+      "done": false
     },
     {
       "date": "2026-07-03",
@@ -43,7 +47,8 @@
       "end": "20:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_5"
+      "id": "evt_5",
+      "done": false
     },
     {
       "date": "2026-07-06",
@@ -52,7 +57,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_6"
+      "id": "evt_6",
+      "done": false
     },
     {
       "date": "2026-07-06",
@@ -61,7 +67,8 @@
       "end": "16:00",
       "fixed": true,
       "priority": 3,
-      "id": "evt_7"
+      "id": "evt_7",
+      "done": false
     },
     {
       "date": "2026-07-07",
@@ -70,7 +77,8 @@
       "end": "09:45",
       "fixed": true,
       "priority": 3,
-      "id": "evt_8"
+      "id": "evt_8",
+      "done": false
     },
     {
       "date": "2026-07-07",
@@ -79,7 +87,8 @@
       "end": "18:30",
       "fixed": false,
       "priority": 1,
-      "id": "evt_9"
+      "id": "evt_9",
+      "done": false
     },
     {
       "date": "2026-07-08",
@@ -88,7 +97,8 @@
       "end": "17:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_10"
+      "id": "evt_10",
+      "done": false
     },
     {
       "date": "2026-07-09",
@@ -97,7 +107,8 @@
       "end": "14:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_11"
+      "id": "evt_11",
+      "done": false
     },
     {
       "date": "2026-07-09",
@@ -106,7 +117,8 @@
       "end": "21:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_12"
+      "id": "evt_12",
+      "done": false
     },
     {
       "date": "2026-07-10",
@@ -115,7 +127,8 @@
       "end": "12:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_13"
+      "id": "evt_13",
+      "done": false
     },
     {
       "date": "2026-07-10",
@@ -124,7 +137,8 @@
       "end": "20:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_14"
+      "id": "evt_14",
+      "done": false
     },
     {
       "date": "2026-07-11",
@@ -133,7 +147,8 @@
       "end": "16:00",
       "fixed": false,
       "priority": 2,
-      "id": "evt_15"
+      "id": "evt_15",
+      "done": false
     },
     {
       "date": "2026-07-13",
@@ -142,7 +157,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_16"
+      "id": "evt_16",
+      "done": false
     },
     {
       "date": "2026-07-13",
@@ -151,7 +167,8 @@
       "end": "20:30",
       "fixed": false,
       "priority": 3,
-      "id": "evt_17"
+      "id": "evt_17",
+      "done": false
     },
     {
       "date": "2026-07-14",
@@ -160,7 +177,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 3,
-      "id": "evt_18"
+      "id": "evt_18",
+      "done": false
     },
     {
       "date": "2026-07-14",
@@ -169,7 +187,8 @@
       "end": "18:30",
       "fixed": false,
       "priority": 1,
-      "id": "evt_19"
+      "id": "evt_19",
+      "done": false
     },
     {
       "date": "2026-07-15",
@@ -178,7 +197,8 @@
       "end": "17:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_20"
+      "id": "evt_20",
+      "done": false
     },
     {
       "date": "2026-07-16",
@@ -187,7 +207,8 @@
       "end": "14:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_21"
+      "id": "evt_21",
+      "done": false
     },
     {
       "date": "2026-07-16",
@@ -196,7 +217,8 @@
       "end": "21:00",
       "fixed": false,
       "priority": 3,
-      "id": "evt_22"
+      "id": "evt_22",
+      "done": false
     },
     {
       "date": "2026-07-17",
@@ -205,7 +227,8 @@
       "end": "20:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_23"
+      "id": "evt_23",
+      "done": false
     },
     {
       "date": "2026-07-18",
@@ -214,7 +237,8 @@
       "end": "21:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_24"
+      "id": "evt_24",
+      "done": false
     },
     {
       "date": "2026-07-20",
@@ -223,7 +247,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_25"
+      "id": "evt_25",
+      "done": false
     },
     {
       "date": "2026-07-20",
@@ -232,7 +257,8 @@
       "end": "17:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_26"
+      "id": "evt_26",
+      "done": false
     },
     {
       "date": "2026-07-21",
@@ -241,7 +267,8 @@
       "end": "18:30",
       "fixed": false,
       "priority": 1,
-      "id": "evt_27"
+      "id": "evt_27",
+      "done": false
     },
     {
       "date": "2026-07-21",
@@ -250,7 +277,8 @@
       "end": "22:00",
       "fixed": false,
       "priority": 3,
-      "id": "evt_28"
+      "id": "evt_28",
+      "done": false
     },
     {
       "date": "2026-07-22",
@@ -259,7 +287,8 @@
       "end": "17:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_29"
+      "id": "evt_29",
+      "done": false
     },
     {
       "date": "2026-07-22",
@@ -268,7 +297,8 @@
       "end": "22:00",
       "fixed": false,
       "priority": 3,
-      "id": "evt_30"
+      "id": "evt_30",
+      "done": false
     },
     {
       "date": "2026-07-23",
@@ -277,7 +307,8 @@
       "end": "08:45",
       "fixed": true,
       "priority": 3,
-      "id": "evt_31"
+      "id": "evt_31",
+      "done": false
     },
     {
       "date": "2026-07-23",
@@ -286,7 +317,8 @@
       "end": "14:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_32"
+      "id": "evt_32",
+      "done": false
     },
     {
       "date": "2026-07-24",
@@ -295,7 +327,8 @@
       "end": "10:15",
       "fixed": false,
       "priority": 2,
-      "id": "evt_33"
+      "id": "evt_33",
+      "done": false
     },
     {
       "date": "2026-07-24",
@@ -304,7 +337,8 @@
       "end": "23:00",
       "fixed": true,
       "priority": 3,
-      "id": "evt_34"
+      "id": "evt_34",
+      "done": false
     },
     {
       "date": "2026-07-25",
@@ -313,7 +347,8 @@
       "end": "13:00",
       "fixed": true,
       "priority": 3,
-      "id": "evt_35"
+      "id": "evt_35",
+      "done": false
     },
     {
       "date": "2026-07-25",
@@ -322,7 +357,8 @@
       "end": "20:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_36"
+      "id": "evt_36",
+      "done": false
     },
     {
       "date": "2026-07-27",
@@ -331,7 +367,8 @@
       "end": "12:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_37"
+      "id": "evt_37",
+      "done": false
     },
     {
       "date": "2026-07-28",
@@ -340,7 +377,8 @@
       "end": "18:30",
       "fixed": false,
       "priority": 1,
-      "id": "evt_38"
+      "id": "evt_38",
+      "done": false
     },
     {
       "date": "2026-07-29",
@@ -349,7 +387,8 @@
       "end": "17:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_39"
+      "id": "evt_39",
+      "done": false
     },
     {
       "date": "2026-07-30",
@@ -358,7 +397,8 @@
       "end": "14:00",
       "fixed": true,
       "priority": 2,
-      "id": "evt_40"
+      "id": "evt_40",
+      "done": false
     },
     {
       "date": "2026-07-30",
@@ -367,7 +407,8 @@
       "end": "21:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_41"
+      "id": "evt_41",
+      "done": false
     },
     {
       "date": "2026-07-31",
@@ -376,7 +417,8 @@
       "end": "20:00",
       "fixed": false,
       "priority": 1,
-      "id": "evt_42"
+      "id": "evt_42",
+      "done": false
     },
     {
       "date": "2026-07-23",
@@ -385,7 +427,8 @@
       "end": "11:45",
       "fixed": false,
       "priority": 3,
-      "id": "evt_43"
+      "id": "evt_43",
+      "done": false
     },
     {
       "date": "2026-07-26",
@@ -394,7 +437,8 @@
       "end": "11:00",
       "fixed": false,
       "priority": 2,
-      "id": "evt_44"
+      "id": "evt_44",
+      "done": false
     }
   ],
   "facts": [

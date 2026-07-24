@@ -61,6 +61,18 @@ async function removeEvent(id) {
   if (data.events) events = data.events;
 }
 
+// Function to set the json as done
+async function setDone(id, done) {
+  const res = await fetch(`${API}/events/done`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, done })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'could not update');
+  events = data.events;
+}
+
 // format an event's time for display. "12:00–16:00", "12:00", or "" if no time
 function timeLabel(ev) {
   if (!ev.start) return '';
