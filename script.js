@@ -24,7 +24,7 @@ function dateKey(y, m, d) {
 // pull every event for one day out of the flat array, sorted by start time
 function eventsForDay(key) {
   return events
-    .filter(e => e.date === key)
+    .filter(e => e.date === key && !e.done)
     .sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99'));
 }
 
@@ -161,7 +161,7 @@ function renderAgenda() {
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
 
   const monthEvents = events
-    .filter(e => e.date.startsWith(prefix))
+    .filter(e => e.date.startsWith(prefix) && !e.done)
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return (a.start || '99:99').localeCompare(b.start || '99:99');
@@ -214,14 +214,15 @@ function renderAgenda() {
     tickBtn.textContent = '✓';
     tickBtn.title = 'Done';
 
-    tickBtn.addEventListener('click', event => {
+    tickBtn.addEventListener('click', async event => {
       event.stopPropagation();
 
-      row.classList.toggle('completed');
-
-      tickBtn.classList.toString('checked');
-
-      tickBtn.textContent = row.classList.contains('completed') ? '✓' : '';
+      try {
+        await setDone(ev.id, true);
+        render();
+      } catch (err) {
+        console.error('Could not mark event as done:', err);
+      }
     });
 
     row.appendChild(date);
