@@ -1,28 +1,24 @@
 {
   "events": [
     {
-      "date": "2026-07-01",
-      "title": "aaa",
-      "start": "00:30",
-      "end": "01:00",
-      "fixed": false,
-      "priority": 2,
-      "id": "evt_19"
+      "date": "2026-07-23",
+      "title": "Doctors appointment",
+      "start": "07:15",
+      "end": "08:45",
+      "fixed": true,
+      "priority": 3,
+      "id": "evt_5"
     },
     {
-      "date": "2026-07-01",
-      "title": "bbb",
-      "start": "00:30",
-      "end": "02:45",
-      "fixed": true,
+      "date": "2026-07-24",
+      "title": "meeting",
+      "start": "08:30",
+      "end": "10:15",
+      "fixed": false,
       "priority": 2,
-      "id": "evt_21"
+      "id": "evt_9"
     }
   ],
   "facts": [],
-<<<<<<< HEAD
-  "nextId": 22
-=======
   "nextId": 1
->>>>>>> 76764d2c1056521cea69cd3ec7c437c69c2fa8c3
 }

@@ -28,7 +28,6 @@ function eventsForDay(key) {
     .sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99'));
 }
 
-/* ---------- server talk ---------- */
 async function loadEvents() {
   try {
     const res = await fetch(`${API}/events`);
@@ -83,7 +82,6 @@ function findFixedClash(newEvt) {
   ) || null;
 }
 
-/* ---------- calendar render ---------- */
 function render() {
   const year = current.getFullYear();
   const month = current.getMonth();
@@ -206,7 +204,6 @@ function renderAgenda() {
   });
 }
 
-/* ---------- modal ---------- */
 function openModal(year, month, d) {
   selectedDate = dateKey(year, month, d);
   modalDate.textContent = `${MONTHS[month]} ${d}, ${year}`;
@@ -345,7 +342,6 @@ eventInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addEvent(
 
 loadEvents();  // fetch from server, then render
 
-/* chat */
 const chat = document.getElementById('chat');
 const chatBody = document.getElementById('chatBody');
 const chatInput = document.getElementById('chatInput');
