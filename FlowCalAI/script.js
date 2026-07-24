@@ -121,7 +121,8 @@ function render() {
         const e = document.createElement('div');
         e.className = `event pri-${ev.priority || 2}${ev.fixed ? ' is-fixed' : ''}`;
         const t = timeLabel(ev);
-        const label = t ? `${t} ${ev.title}` : ev.title;
+        // title first so it survives the ellipsis in a narrow cell
+        const label = t ? `${ev.title} · ${t}` : ev.title;
         e.textContent = label;
         e.title = label;   // full text on hover
         wrap.appendChild(e);
@@ -347,8 +348,10 @@ const chatBody = document.getElementById('chatBody');
 const chatInput = document.getElementById('chatInput');
 const messages = []; // {role: 'me'|'bot', text}
 
-function addMessage(role, text) {
-  messages.push({ role, text });
+// ephemeral messages (like "thinking…") render but never enter the history,
+// otherwise they pollute the context the model sees on the next turn
+function addMessage(role, text, ephemeral = false) {
+  if (!ephemeral) messages.push({ role, text });
   const el = document.createElement('div');
   el.className = `msg ${role}`;
   el.textContent = text;
@@ -363,7 +366,7 @@ async function sendMessage() {
   addMessage('me', val);
   chatInput.value = '';
 
-  const thinking = addMessage('bot', 'thinking…');
+  const thinking = addMessage('bot', 'thinking…', true);
 
   try {
     const res = await fetch(`${API}/assistant`, {
@@ -377,10 +380,11 @@ async function sendMessage() {
     const p = data.proposal || { action: 'none', message: "hmm, got nothing back." };
     addMessage('bot', p.message);
 
-    // 'ask' just shows the question and waits for the next user reply.
-    // 'add'/'delete'/'move' show confirm buttons.
+    // 'ask' and 'none' just show the message and wait for the next user reply.
     if (p.action === 'add' || p.action === 'delete' || p.action === 'move') {
       showConfirm(p);
+    } else if (p.action === 'recommend') {
+      showSlotOptions(p);
     }
   } catch (err) {
     thinking.remove();
@@ -388,11 +392,12 @@ async function sendMessage() {
   }
 }
 
-// render slot options for a move; picking one does delete-old + add-new
-function showMoveOptions(proposal) {
+// render slot buttons for a recommendation. picking one adds the event.
+function showSlotOptions(proposal) {
+  if (!proposal.slots || !proposal.slots.length) return;
+
   const box = document.createElement('div');
   box.className = 'move-options';
-
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   proposal.slots.forEach(slot => {
@@ -408,20 +413,18 @@ function showMoveOptions(proposal) {
     btn.addEventListener('click', async () => {
       box.remove();
       try {
-        // recreate first, then remove the old, so a failure doesn't lose the event
         await saveEvent({
           date: slot.date,
-          title: proposal.title,
+          title: proposal.event.title,
           start: slot.start,
           end: slot.end,
-          fixed: false,           // moved events stay flexible
-          priority: proposal.priority
+          fixed: false,
+          priority: proposal.event.priority
         });
-        await removeEvent(proposal.id);
         render();
-        addMessage('bot', `Moved "${proposal.title}" to ${label.replace(/ ⚠️.*/, '')}.`);
+        addMessage('bot', `Added "${proposal.event.title}" on ${label.replace(/ ⚠️.*/, '')}.`);
       } catch (err) {
-        addMessage('bot', err.message || "Couldn't move it.");
+        addMessage('bot', err.message || "Couldn't add it.");
       }
     });
 
@@ -430,10 +433,10 @@ function showMoveOptions(proposal) {
 
   const cancel = document.createElement('button');
   cancel.className = 'move-opt cancel';
-  cancel.textContent = 'Cancel';
+  cancel.textContent = 'None of these';
   cancel.addEventListener('click', () => {
     box.remove();
-    addMessage('bot', 'Okay, left it where it is.');
+    addMessage('bot', 'No worries, tell me when suits.');
   });
   box.appendChild(cancel);
 
