@@ -246,6 +246,12 @@ function recommendSlots(durationMin, fromDate, priority = 2, excludeId = null, d
 
 // ---- event endpoints ----
 
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(ROOT, 'index.html'));
+});
+
+
 // browser loads all events on startup
 app.get('/events', (req, res) => {
   res.json({ events: store.events });
