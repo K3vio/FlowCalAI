@@ -122,6 +122,7 @@ function render() {
         e.className = `event pri-${ev.priority || 2}${ev.fixed ? ' is-fixed' : ''}`;
         const t = timeLabel(ev);
         const label = t ? `${t} ${ev.title}` : ev.title;
+
         e.textContent = label;
         e.title = label;   // full text on hover
         wrap.appendChild(e);
@@ -196,10 +197,27 @@ function renderAgenda() {
     tag.className = `agenda-tag ${ev.fixed ? 'fixed' : ''}`;
     tag.textContent = ev.fixed ? 'Fixed' : 'Flexible';
 
+    const tickBtn = document.createElement('button');
+    tickBtn.type = 'button';
+    tickBtn.className = 'agenda-done-button';
+    tickBtn.textContent = '✓';
+    tickBtn.title = 'Done';
+
+    tickBtn.addEventListener('click', event => {
+      event.stopPropagation();
+
+      row.classList.toggle('completed');
+
+      tickBtn.classList.toString('checked');
+
+      tickBtn.textContent = row.classList.contains('completed') ? '✓' : '';
+    });
+
     row.appendChild(date);
     row.appendChild(bar);
     row.appendChild(main);
     row.appendChild(tag);
+    row.appendChild(tickBtn);
     agendaList.appendChild(row);
   });
 }
@@ -496,3 +514,411 @@ document.getElementById('agendaToggle').addEventListener('click', () => {
   agenda.classList.toggle('collapsed');
   document.getElementById('agendaToggle').textContent = agenda.classList.contains('collapsed') ? '+' : '–';
 });
+
+/* =========================================================
+   DAY, WEEK, MONTH AND YEAR CALENDAR VIEWS
+   Added after the existing script.
+========================================================= */
+
+let currentView = 'month';
+
+const calendarElement = document.querySelector('.calendar');
+const weekdaysElement = document.querySelector('.weekdays');
+const originalMonthRender = render;
+
+function showMonthView() {
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'grid';
+
+  daysGrid.className = 'days month-view';
+
+  originalMonthRender();
+}
+
+function showDayView() {
+  const year = current.getFullYear();
+  const month = current.getMonth();
+  const day = current.getDate();
+  const key = dateKey(year, month, day);
+
+  const dayNames = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ];
+
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'none';
+
+  monthLabel.textContent = dayNames[current.getDay()];
+  yearLabel.textContent = `${MONTHS[month]} ${day}, ${year}`;
+
+  daysGrid.className = 'days day-view';
+  daysGrid.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'day-view-card';
+
+  const title = document.createElement('div');
+  title.className = 'day-view-title';
+  title.textContent =
+    `${dayNames[current.getDay()]}, ${MONTHS[month]} ${day}, ${year}`;
+
+  card.appendChild(title);
+
+  const eventContainer = document.createElement('div');
+  eventContainer.className = 'day-view-events';
+
+  const dayEvents = eventsForDay(key);
+
+  if (!dayEvents.length) {
+    const empty = document.createElement('div');
+    empty.className = 'day-view-empty';
+    empty.textContent =
+      'Nothing scheduled for this day. Click here to add an event.';
+
+    eventContainer.appendChild(empty);
+  } else {
+    dayEvents.forEach(ev => {
+      const eventElement = document.createElement('div');
+
+      eventElement.className =
+        `event day-view-event pri-${ev.priority || 2}` +
+        `${ev.fixed ? ' is-fixed' : ''}`;
+
+      const time = timeLabel(ev);
+
+      eventElement.textContent = time
+        ? `${time} · ${ev.title}`
+        : ev.title;
+
+      eventElement.title = eventElement.textContent;
+
+      eventContainer.appendChild(eventElement);
+    });
+  }
+
+  card.appendChild(eventContainer);
+
+  card.addEventListener('click', () => {
+    openModal(year, month, day);
+  });
+
+  daysGrid.appendChild(card);
+
+  renderAgenda();
+}
+
+function getStartOfWeek(date) {
+  const start = new Date(date);
+
+  start.setDate(start.getDate() - start.getDay());
+  start.setHours(0, 0, 0, 0);
+
+  return start;
+}
+
+function createWeekDayCell(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const today = new Date();
+
+  const cell = document.createElement('div');
+  cell.className = 'day';
+
+  const isToday =
+    year === today.getFullYear() &&
+    month === today.getMonth() &&
+    day === today.getDate();
+
+  if (isToday) {
+    cell.classList.add('today');
+  }
+
+  const number = document.createElement('div');
+  number.className = 'day-num';
+  number.textContent = day;
+
+  cell.appendChild(number);
+
+  const key = dateKey(year, month, day);
+  const dayEvents = eventsForDay(key);
+
+  if (dayEvents.length) {
+    const eventContainer = document.createElement('div');
+    eventContainer.className = 'events';
+
+    dayEvents.slice(0, 6).forEach(ev => {
+      const eventElement = document.createElement('div');
+
+      eventElement.className =
+        `event pri-${ev.priority || 2}` +
+        `${ev.fixed ? ' is-fixed' : ''}`;
+
+      const time = timeLabel(ev);
+
+      eventElement.textContent = time
+        ? `${time} ${ev.title}`
+        : ev.title;
+
+      eventElement.title = eventElement.textContent;
+
+      eventContainer.appendChild(eventElement);
+    });
+
+    if (dayEvents.length > 6) {
+      const more = document.createElement('div');
+      more.className = 'more';
+      more.textContent = `+${dayEvents.length - 6} more`;
+
+      eventContainer.appendChild(more);
+    }
+
+    cell.appendChild(eventContainer);
+  }
+
+  cell.addEventListener('click', () => {
+    openModal(year, month, day);
+  });
+
+  return cell;
+}
+
+function showWeekView() {
+  const weekStart = getStartOfWeek(current);
+  const weekEnd = new Date(weekStart);
+
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'grid';
+
+  if (weekStart.getMonth() === weekEnd.getMonth()) {
+    monthLabel.textContent = MONTHS[weekStart.getMonth()];
+  } else {
+    monthLabel.textContent =
+      `${MONTHS[weekStart.getMonth()]} – ` +
+      `${MONTHS[weekEnd.getMonth()]}`;
+  }
+
+  if (weekStart.getFullYear() === weekEnd.getFullYear()) {
+    yearLabel.textContent = weekStart.getFullYear();
+  } else {
+    yearLabel.textContent =
+      `${weekStart.getFullYear()} – ${weekEnd.getFullYear()}`;
+  }
+
+  daysGrid.className = 'days week-view';
+  daysGrid.innerHTML = '';
+
+  for (let index = 0; index < 7; index++) {
+    const date = new Date(weekStart);
+
+    date.setDate(weekStart.getDate() + index);
+
+    daysGrid.appendChild(createWeekDayCell(date));
+  }
+
+  renderAgenda();
+}
+
+function showYearView() {
+  const year = current.getFullYear();
+  const today = new Date();
+
+  const shortDayNames = [
+    'S',
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S'
+  ];
+
+  calendarElement.classList.add('year-calendar');
+  weekdaysElement.style.display = 'none';
+
+  monthLabel.textContent = year;
+  yearLabel.textContent = 'Year view';
+
+  daysGrid.className = 'days year-view';
+  daysGrid.innerHTML = '';
+
+  for (let month = 0; month < 12; month++) {
+    const monthContainer = document.createElement('div');
+    monthContainer.className = 'year-month';
+
+    const monthTitle = document.createElement('div');
+    monthTitle.className = 'year-month-title';
+    monthTitle.textContent = MONTHS[month];
+
+    monthContainer.appendChild(monthTitle);
+
+    const weekdayRow = document.createElement('div');
+    weekdayRow.className = 'year-weekdays';
+
+    shortDayNames.forEach(name => {
+      const weekday = document.createElement('div');
+      weekday.textContent = name;
+
+      weekdayRow.appendChild(weekday);
+    });
+
+    monthContainer.appendChild(weekdayRow);
+
+    const monthGrid = document.createElement('div');
+    monthGrid.className = 'year-days';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const numberOfDays = new Date(year, month + 1, 0).getDate();
+
+    for (
+      let blankIndex = 0;
+      blankIndex < firstDay;
+      blankIndex++
+    ) {
+      const blank = document.createElement('div');
+      blank.className = 'year-day blank';
+
+      monthGrid.appendChild(blank);
+    }
+
+    for (let day = 1; day <= numberOfDays; day++) {
+      const dayElement = document.createElement('div');
+      dayElement.className = 'year-day';
+      dayElement.textContent = day;
+
+      const isToday =
+        year === today.getFullYear() &&
+        month === today.getMonth() &&
+        day === today.getDate();
+
+      if (isToday) {
+        dayElement.classList.add('today');
+      }
+
+      const key = dateKey(year, month, day);
+      const dayEvents = eventsForDay(key);
+
+      if (dayEvents.length) {
+        const dot = document.createElement('span');
+        dot.className = 'year-event-dot';
+
+        dayElement.appendChild(dot);
+      }
+
+      dayElement.addEventListener('click', () => {
+        openModal(year, month, day);
+      });
+
+      monthGrid.appendChild(dayElement);
+    }
+
+    monthContainer.appendChild(monthGrid);
+    daysGrid.appendChild(monthContainer);
+  }
+
+  renderAgenda();
+}
+
+function renderCurrentView() {
+  if (currentView === 'day') {
+    showDayView();
+  } else if (currentView === 'week') {
+    showWeekView();
+  } else if (currentView === 'year') {
+    showYearView();
+  } else {
+    showMonthView();
+  }
+}
+
+/*
+ * Existing functions such as addEvent(), removeEvent() and loadEvents()
+ * call render(). Redirect those calls to the currently selected view.
+ */
+render = renderCurrentView;
+
+const viewButtons = document.querySelectorAll('.view-btn');
+
+viewButtons.forEach(button => {
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const selectedView = button.dataset.view;
+
+    if (!['day', 'week', 'month', 'year'].includes(selectedView)) {
+      console.error('Invalid calendar view:', selectedView);
+      return;
+    }
+
+    currentView = selectedView;
+
+    viewButtons.forEach(viewButton => {
+      viewButton.classList.toggle(
+        'active',
+        viewButton === button
+      );
+    });
+
+    renderCurrentView();
+  });
+});
+
+/*
+ * These listeners run before the original month navigation listeners.
+ * For Month view, the original listeners are allowed to run.
+ * For other views, they are stopped and handled here.
+ */
+document.getElementById('prevBtn').addEventListener(
+  'click',
+  event => {
+    if (currentView === 'month') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (currentView === 'day') {
+      current.setDate(current.getDate() - 1);
+    } else if (currentView === 'week') {
+      current.setDate(current.getDate() - 7);
+    } else if (currentView === 'year') {
+      current.setFullYear(current.getFullYear() - 1);
+    }
+
+    renderCurrentView();
+  },
+  true
+);
+
+document.getElementById('nextBtn').addEventListener(
+  'click',
+  event => {
+    if (currentView === 'month') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (currentView === 'day') {
+      current.setDate(current.getDate() + 1);
+    } else if (currentView === 'week') {
+      current.setDate(current.getDate() + 7);
+    } else if (currentView === 'year') {
+      current.setFullYear(current.getFullYear() + 1);
+    }
+
+    renderCurrentView();
+  },
+  true
+);

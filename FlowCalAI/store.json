@@ -1,15 +1,6 @@
 {
   "events": [
     {
-      "date": "2026-07-23",
-      "title": "Doctors appointment",
-      "start": "07:15",
-      "end": "08:45",
-      "fixed": true,
-      "priority": 3,
-      "id": "evt_5"
-    },
-    {
       "date": "2026-07-24",
       "title": "meeting",
       "start": "08:30",
@@ -17,8 +8,26 @@
       "fixed": false,
       "priority": 2,
       "id": "evt_9"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "test",
+      "start": "03:00",
+      "end": "04:00",
+      "fixed": false,
+      "priority": 2,
+      "id": "evt_2"
+    },
+    {
+      "date": "2026-07-25",
+      "title": "nkndckn",
+      "start": "03:30",
+      "end": "04:00",
+      "fixed": true,
+      "priority": 3,
+      "id": "evt_3"
     }
   ],
   "facts": [],
-  "nextId": 1
+  "nextId": 4
 }
