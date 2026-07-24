@@ -13,7 +13,7 @@ app.use(express.json());
 const STORE_PATH = './store.json';
 
 // everything lives here in memory. events is a flat list of event objects.
-// shape: { events: [ {id, date, title, start, end, fixed, priority} ], facts: [], nextId: 1 }
+// shape: { events: [ {id, date, title, start, end, fixed, priority, done} ], facts: [], nextId: 1 }
 let store = { events: [], facts: [], nextId: 1 };
 
 function loadStore() {
@@ -23,6 +23,8 @@ function loadStore() {
     if (!Array.isArray(store.events)) store.events = [];
     if (!Array.isArray(store.facts)) store.facts = [];
     if (typeof store.nextId !== 'number') store.nextId = 1;
+    // older events predate the done field. treat a missing one as not done.
+    store.events.forEach(e => { if (typeof e.done !== 'boolean') e.done = false; });
     console.log(`loaded ${store.events.length} events, ${store.facts.length} facts`);
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -57,6 +59,11 @@ function addDays(iso, n) {
   return isoFromDate(new Date(y, m - 1, d + n));
 }
 
+// "2026-07" from "2026-07-25"
+function monthOf(iso) {
+  return iso.slice(0, 7);
+}
+
 // date must be YYYY-MM-DD
 function isValidDate(d) {
   return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -89,11 +96,33 @@ function cleanEvent(raw) {
     start: raw.start || '',
     end: raw.end || '',
     fixed: raw.fixed === true,   // anything not literally true is flexible
-    priority
+    priority,
+    done: raw.done === true      // survives a round trip, defaults to false
   };
 }
 
 loadStore();
+
+// ---- completion stats ----
+// derived from the events themselves, never stored as a separate counter.
+// a counter drifts the moment someone deletes a completed event; this can't.
+
+function statsForMonth(month) {
+  const monthEvents = store.events.filter(e => monthOf(e.date) === month);
+  const total = monthEvents.length;
+  const completed = monthEvents.filter(e => e.done).length;
+  const rate = total ? Math.round((completed / total) * 100) : 0;
+  return { month, completed, total, rate };
+}
+
+// same idea for an arbitrary window, used for "how was last week"
+function statsBetween(fromISO, toISO) {
+  const inRange = store.events.filter(e => e.date >= fromISO && e.date <= toISO);
+  const total = inRange.length;
+  const completed = inRange.filter(e => e.done).length;
+  const rate = total ? Math.round((completed / total) * 100) : 0;
+  return { from: fromISO, to: toISO, completed, total, rate };
+}
 
 // ---- memory / facts ----
 
@@ -241,6 +270,25 @@ app.post('/events', (req, res) => {
   res.json({ events: store.events });
 });
 
+// mark an event done or not done.
+// POST /events/done  { id: "evt_44", done: true }  ->  { events: [...] }
+app.post('/events/done', (req, res) => {
+  const { id, done } = req.body;
+  if (typeof id !== 'string') {
+    return res.status(400).json({ error: 'missing id' });
+  }
+  if (typeof done !== 'boolean') {
+    return res.status(400).json({ error: 'done must be true or false' });
+  }
+  const target = store.events.find(e => e.id === id);
+  if (!target) {
+    return res.status(404).json({ error: 'event not found' });
+  }
+  target.done = done;
+  saveStore();
+  res.json({ events: store.events });
+});
+
 // delete one event by id
 app.delete('/events', (req, res) => {
   const { id } = req.body;
@@ -254,6 +302,17 @@ app.delete('/events', (req, res) => {
   }
   saveStore();
   res.json({ events: store.events });
+});
+
+// ---- stats endpoint ----
+
+// GET /stats                  -> current month
+// GET /stats?month=2026-06    -> that month
+app.get('/stats', (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(req.query.month || '')
+    ? req.query.month
+    : monthOf(todayISO());
+  res.json(statsForMonth(month));
 });
 
 // ---- memory endpoints ----
@@ -293,8 +352,19 @@ function scheduleForModel() {
     title: sanitiseForPrompt(e.title),
     start: e.start,
     end: e.end,
-    fixed: e.fixed
+    fixed: e.fixed,
+    done: e.done === true
   }));
+}
+
+// a short human-readable summary of how the user is tracking, so the model can
+// answer "how am I doing" and factor follow-through into its suggestions.
+function statsForModel() {
+  const thisMonth = statsForMonth(monthOf(todayISO()));
+  const lastWeek = statsBetween(addDays(todayISO(), -7), todayISO());
+
+  return `This month (${thisMonth.month}): ${thisMonth.completed} of ${thisMonth.total} events marked done (${thisMonth.rate}%).
+Last 7 days: ${lastWeek.completed} of ${lastWeek.total} marked done (${lastWeek.rate}%).`;
 }
 
 // the AI must answer ONLY in this shape. we validate it hard after.
@@ -313,6 +383,9 @@ ${JSON.stringify(scheduleForModel())}
 
 KNOWN USER PREFERENCES (memory):
 ${factsBlock}
+
+COMPLETION STATS:
+${statsForModel()}
 
 The user said: "${sanitiseForPrompt(message)}"
 
@@ -350,6 +423,16 @@ Set "dateOnly" to FALSE if they gave a range or nothing ("this week", "sometime 
 
 If the user asks for a free DAY or a whole day off, use "recommend" with
 durationMin 480, since a day with eight continuous free hours is effectively free.
+
+COMPLETION STATS:
+The COMPLETION STATS block above shows how much of what the user schedules they
+actually mark as done. If they ask how they are tracking, how many tasks they have
+finished, or anything similar, use action "none" and answer from those numbers in
+your "message". Quote the real figures, never invent them.
+Let the numbers inform your suggestions too: if the completion rate is low the user
+is over-scheduling, so suggest fewer or lighter commitments and say why in one clause.
+If it is high, they have room for more. Mention this at most once, briefly, and never
+lecture or moralise about it.
 
 MEMORY:
 Use "remember" ONLY when the user states a lasting preference, habit, or constraint
@@ -516,7 +599,8 @@ function parseProposal(rawText) {
         start: newStart,
         end: newEnd,
         fixed: false,
-        priority: target.priority
+        priority: target.priority,
+        done: target.done === true   // moving an event doesn't un-complete it
       },
       message: msg || `Move "${target.title}" to ${newDate} ${newStart}-${newEnd}?`
     };

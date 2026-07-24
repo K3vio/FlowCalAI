@@ -61,6 +61,17 @@ async function removeEvent(id) {
   if (data.events) events = data.events;
 }
 
+async function setDone(id, done) {
+  const res = await fetch(`${API}/events/done`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, done })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'could not update');
+  events = data.events;
+}
+
 // format an event's time for display. "12:00–16:00", "12:00", or "" if no time
 function timeLabel(ev) {
   if (!ev.start) return '';
@@ -121,8 +132,8 @@ function render() {
         const e = document.createElement('div');
         e.className = `event pri-${ev.priority || 2}${ev.fixed ? ' is-fixed' : ''}`;
         const t = timeLabel(ev);
-        // title first so it survives the ellipsis in a narrow cell
-        const label = t ? `${ev.title} · ${t}` : ev.title;
+        const label = t ? `${t} ${ev.title}` : ev.title;
+
         e.textContent = label;
         e.title = label;   // full text on hover
         wrap.appendChild(e);
@@ -143,7 +154,7 @@ function render() {
   renderAgenda();
 }
 
-// list every event in the viewed month, sorted by date then time
+// list every event in the viewed month, sorted by date then time //
 function renderAgenda() {
   const year = current.getFullYear();
   const month = current.getMonth();
@@ -197,10 +208,27 @@ function renderAgenda() {
     tag.className = `agenda-tag ${ev.fixed ? 'fixed' : ''}`;
     tag.textContent = ev.fixed ? 'Fixed' : 'Flexible';
 
+    const tickBtn = document.createElement('button');
+    tickBtn.type = 'button';
+    tickBtn.className = 'agenda-done-button';
+    tickBtn.textContent = '✓';
+    tickBtn.title = 'Done';
+
+    tickBtn.addEventListener('click', event => {
+      event.stopPropagation();
+
+      row.classList.toggle('completed');
+
+      tickBtn.classList.toString('checked');
+
+      tickBtn.textContent = row.classList.contains('completed') ? '✓' : '';
+    });
+
     row.appendChild(date);
     row.appendChild(bar);
     row.appendChild(main);
     row.appendChild(tag);
+    row.appendChild(tickBtn);
     agendaList.appendChild(row);
   });
 }
@@ -348,10 +376,8 @@ const chatBody = document.getElementById('chatBody');
 const chatInput = document.getElementById('chatInput');
 const messages = []; // {role: 'me'|'bot', text}
 
-// ephemeral messages (like "thinking…") render but never enter the history,
-// otherwise they pollute the context the model sees on the next turn
-function addMessage(role, text, ephemeral = false) {
-  if (!ephemeral) messages.push({ role, text });
+function addMessage(role, text) {
+  messages.push({ role, text });
   const el = document.createElement('div');
   el.className = `msg ${role}`;
   el.textContent = text;
@@ -366,7 +392,7 @@ async function sendMessage() {
   addMessage('me', val);
   chatInput.value = '';
 
-  const thinking = addMessage('bot', 'thinking…', true);
+  const thinking = addMessage('bot', 'thinking…');
 
   try {
     const res = await fetch(`${API}/assistant`, {
@@ -380,11 +406,10 @@ async function sendMessage() {
     const p = data.proposal || { action: 'none', message: "hmm, got nothing back." };
     addMessage('bot', p.message);
 
-    // 'ask' and 'none' just show the message and wait for the next user reply.
+    // 'ask' just shows the question and waits for the next user reply.
+    // 'add'/'delete'/'move' show confirm buttons.
     if (p.action === 'add' || p.action === 'delete' || p.action === 'move') {
       showConfirm(p);
-    } else if (p.action === 'recommend') {
-      showSlotOptions(p);
     }
   } catch (err) {
     thinking.remove();
@@ -392,12 +417,11 @@ async function sendMessage() {
   }
 }
 
-// render slot buttons for a recommendation. picking one adds the event.
-function showSlotOptions(proposal) {
-  if (!proposal.slots || !proposal.slots.length) return;
-
+// render slot options for a move; picking one does delete-old + add-new
+function showMoveOptions(proposal) {
   const box = document.createElement('div');
   box.className = 'move-options';
+
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   proposal.slots.forEach(slot => {
@@ -413,18 +437,20 @@ function showSlotOptions(proposal) {
     btn.addEventListener('click', async () => {
       box.remove();
       try {
+        // recreate first, then remove the old, so a failure doesn't lose the event
         await saveEvent({
           date: slot.date,
-          title: proposal.event.title,
+          title: proposal.title,
           start: slot.start,
           end: slot.end,
-          fixed: false,
-          priority: proposal.event.priority
+          fixed: false,           // moved events stay flexible
+          priority: proposal.priority
         });
+        await removeEvent(proposal.id);
         render();
-        addMessage('bot', `Added "${proposal.event.title}" on ${label.replace(/ ⚠️.*/, '')}.`);
+        addMessage('bot', `Moved "${proposal.title}" to ${label.replace(/ ⚠️.*/, '')}.`);
       } catch (err) {
-        addMessage('bot', err.message || "Couldn't add it.");
+        addMessage('bot', err.message || "Couldn't move it.");
       }
     });
 
@@ -433,10 +459,10 @@ function showSlotOptions(proposal) {
 
   const cancel = document.createElement('button');
   cancel.className = 'move-opt cancel';
-  cancel.textContent = 'None of these';
+  cancel.textContent = 'Cancel';
   cancel.addEventListener('click', () => {
     box.remove();
-    addMessage('bot', 'No worries, tell me when suits.');
+    addMessage('bot', 'Okay, left it where it is.');
   });
   box.appendChild(cancel);
 
@@ -499,3 +525,411 @@ document.getElementById('agendaToggle').addEventListener('click', () => {
   agenda.classList.toggle('collapsed');
   document.getElementById('agendaToggle').textContent = agenda.classList.contains('collapsed') ? '+' : '–';
 });
+
+/* =========================================================
+   DAY, WEEK, MONTH AND YEAR CALENDAR VIEWS
+   Added after the existing script.
+========================================================= */
+
+let currentView = 'month';
+
+const calendarElement = document.querySelector('.calendar');
+const weekdaysElement = document.querySelector('.weekdays');
+const originalMonthRender = render;
+
+function showMonthView() {
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'grid';
+
+  daysGrid.className = 'days month-view';
+
+  originalMonthRender();
+}
+
+function showDayView() {
+  const year = current.getFullYear();
+  const month = current.getMonth();
+  const day = current.getDate();
+  const key = dateKey(year, month, day);
+
+  const dayNames = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ];
+
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'none';
+
+  monthLabel.textContent = dayNames[current.getDay()];
+  yearLabel.textContent = `${MONTHS[month]} ${day}, ${year}`;
+
+  daysGrid.className = 'days day-view';
+  daysGrid.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'day-view-card';
+
+  const title = document.createElement('div');
+  title.className = 'day-view-title';
+  title.textContent =
+    `${dayNames[current.getDay()]}, ${MONTHS[month]} ${day}, ${year}`;
+
+  card.appendChild(title);
+
+  const eventContainer = document.createElement('div');
+  eventContainer.className = 'day-view-events';
+
+  const dayEvents = eventsForDay(key);
+
+  if (!dayEvents.length) {
+    const empty = document.createElement('div');
+    empty.className = 'day-view-empty';
+    empty.textContent =
+      'Nothing scheduled for this day. Click here to add an event.';
+
+    eventContainer.appendChild(empty);
+  } else {
+    dayEvents.forEach(ev => {
+      const eventElement = document.createElement('div');
+
+      eventElement.className =
+        `event day-view-event pri-${ev.priority || 2}` +
+        `${ev.fixed ? ' is-fixed' : ''}`;
+
+      const time = timeLabel(ev);
+
+      eventElement.textContent = time
+        ? `${time} · ${ev.title}`
+        : ev.title;
+
+      eventElement.title = eventElement.textContent;
+
+      eventContainer.appendChild(eventElement);
+    });
+  }
+
+  card.appendChild(eventContainer);
+
+  card.addEventListener('click', () => {
+    openModal(year, month, day);
+  });
+
+  daysGrid.appendChild(card);
+
+  renderAgenda();
+}
+
+function getStartOfWeek(date) {
+  const start = new Date(date);
+
+  start.setDate(start.getDate() - start.getDay());
+  start.setHours(0, 0, 0, 0);
+
+  return start;
+}
+
+function createWeekDayCell(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const today = new Date();
+
+  const cell = document.createElement('div');
+  cell.className = 'day';
+
+  const isToday =
+    year === today.getFullYear() &&
+    month === today.getMonth() &&
+    day === today.getDate();
+
+  if (isToday) {
+    cell.classList.add('today');
+  }
+
+  const number = document.createElement('div');
+  number.className = 'day-num';
+  number.textContent = day;
+
+  cell.appendChild(number);
+
+  const key = dateKey(year, month, day);
+  const dayEvents = eventsForDay(key);
+
+  if (dayEvents.length) {
+    const eventContainer = document.createElement('div');
+    eventContainer.className = 'events';
+
+    dayEvents.slice(0, 6).forEach(ev => {
+      const eventElement = document.createElement('div');
+
+      eventElement.className =
+        `event pri-${ev.priority || 2}` +
+        `${ev.fixed ? ' is-fixed' : ''}`;
+
+      const time = timeLabel(ev);
+
+      eventElement.textContent = time
+        ? `${time} ${ev.title}`
+        : ev.title;
+
+      eventElement.title = eventElement.textContent;
+
+      eventContainer.appendChild(eventElement);
+    });
+
+    if (dayEvents.length > 6) {
+      const more = document.createElement('div');
+      more.className = 'more';
+      more.textContent = `+${dayEvents.length - 6} more`;
+
+      eventContainer.appendChild(more);
+    }
+
+    cell.appendChild(eventContainer);
+  }
+
+  cell.addEventListener('click', () => {
+    openModal(year, month, day);
+  });
+
+  return cell;
+}
+
+function showWeekView() {
+  const weekStart = getStartOfWeek(current);
+  const weekEnd = new Date(weekStart);
+
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  calendarElement.classList.remove('year-calendar');
+  weekdaysElement.style.display = 'grid';
+
+  if (weekStart.getMonth() === weekEnd.getMonth()) {
+    monthLabel.textContent = MONTHS[weekStart.getMonth()];
+  } else {
+    monthLabel.textContent =
+      `${MONTHS[weekStart.getMonth()]} – ` +
+      `${MONTHS[weekEnd.getMonth()]}`;
+  }
+
+  if (weekStart.getFullYear() === weekEnd.getFullYear()) {
+    yearLabel.textContent = weekStart.getFullYear();
+  } else {
+    yearLabel.textContent =
+      `${weekStart.getFullYear()} – ${weekEnd.getFullYear()}`;
+  }
+
+  daysGrid.className = 'days week-view';
+  daysGrid.innerHTML = '';
+
+  for (let index = 0; index < 7; index++) {
+    const date = new Date(weekStart);
+
+    date.setDate(weekStart.getDate() + index);
+
+    daysGrid.appendChild(createWeekDayCell(date));
+  }
+
+  renderAgenda();
+}
+
+function showYearView() {
+  const year = current.getFullYear();
+  const today = new Date();
+
+  const shortDayNames = [
+    'S',
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S'
+  ];
+
+  calendarElement.classList.add('year-calendar');
+  weekdaysElement.style.display = 'none';
+
+  monthLabel.textContent = year;
+  yearLabel.textContent = 'Year view';
+
+  daysGrid.className = 'days year-view';
+  daysGrid.innerHTML = '';
+
+  for (let month = 0; month < 12; month++) {
+    const monthContainer = document.createElement('div');
+    monthContainer.className = 'year-month';
+
+    const monthTitle = document.createElement('div');
+    monthTitle.className = 'year-month-title';
+    monthTitle.textContent = MONTHS[month];
+
+    monthContainer.appendChild(monthTitle);
+
+    const weekdayRow = document.createElement('div');
+    weekdayRow.className = 'year-weekdays';
+
+    shortDayNames.forEach(name => {
+      const weekday = document.createElement('div');
+      weekday.textContent = name;
+
+      weekdayRow.appendChild(weekday);
+    });
+
+    monthContainer.appendChild(weekdayRow);
+
+    const monthGrid = document.createElement('div');
+    monthGrid.className = 'year-days';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const numberOfDays = new Date(year, month + 1, 0).getDate();
+
+    for (
+      let blankIndex = 0;
+      blankIndex < firstDay;
+      blankIndex++
+    ) {
+      const blank = document.createElement('div');
+      blank.className = 'year-day blank';
+
+      monthGrid.appendChild(blank);
+    }
+
+    for (let day = 1; day <= numberOfDays; day++) {
+      const dayElement = document.createElement('div');
+      dayElement.className = 'year-day';
+      dayElement.textContent = day;
+
+      const isToday =
+        year === today.getFullYear() &&
+        month === today.getMonth() &&
+        day === today.getDate();
+
+      if (isToday) {
+        dayElement.classList.add('today');
+      }
+
+      const key = dateKey(year, month, day);
+      const dayEvents = eventsForDay(key);
+
+      if (dayEvents.length) {
+        const dot = document.createElement('span');
+        dot.className = 'year-event-dot';
+
+        dayElement.appendChild(dot);
+      }
+
+      dayElement.addEventListener('click', () => {
+        openModal(year, month, day);
+      });
+
+      monthGrid.appendChild(dayElement);
+    }
+
+    monthContainer.appendChild(monthGrid);
+    daysGrid.appendChild(monthContainer);
+  }
+
+  renderAgenda();
+}
+
+function renderCurrentView() {
+  if (currentView === 'day') {
+    showDayView();
+  } else if (currentView === 'week') {
+    showWeekView();
+  } else if (currentView === 'year') {
+    showYearView();
+  } else {
+    showMonthView();
+  }
+}
+
+/*
+ * Existing functions such as addEvent(), removeEvent() and loadEvents()
+ * call render(). Redirect those calls to the currently selected view.
+ */
+render = renderCurrentView;
+
+const viewButtons = document.querySelectorAll('.view-btn');
+
+viewButtons.forEach(button => {
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const selectedView = button.dataset.view;
+
+    if (!['day', 'week', 'month', 'year'].includes(selectedView)) {
+      console.error('Invalid calendar view:', selectedView);
+      return;
+    }
+
+    currentView = selectedView;
+
+    viewButtons.forEach(viewButton => {
+      viewButton.classList.toggle(
+        'active',
+        viewButton === button
+      );
+    });
+
+    renderCurrentView();
+  });
+});
+
+/*
+ * These listeners run before the original month navigation listeners.
+ * For Month view, the original listeners are allowed to run.
+ * For other views, they are stopped and handled here.
+ */
+document.getElementById('prevBtn').addEventListener(
+  'click',
+  event => {
+    if (currentView === 'month') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (currentView === 'day') {
+      current.setDate(current.getDate() - 1);
+    } else if (currentView === 'week') {
+      current.setDate(current.getDate() - 7);
+    } else if (currentView === 'year') {
+      current.setFullYear(current.getFullYear() - 1);
+    }
+
+    renderCurrentView();
+  },
+  true
+);
+
+document.getElementById('nextBtn').addEventListener(
+  'click',
+  event => {
+    if (currentView === 'month') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (currentView === 'day') {
+      current.setDate(current.getDate() + 1);
+    } else if (currentView === 'week') {
+      current.setDate(current.getDate() + 7);
+    } else if (currentView === 'year') {
+      current.setFullYear(current.getFullYear() + 1);
+    }
+
+    renderCurrentView();
+  },
+  true
+);
