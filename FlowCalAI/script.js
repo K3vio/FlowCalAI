@@ -143,7 +143,7 @@ function render() {
   renderAgenda();
 }
 
-// list every event in the viewed month, sorted by date then time
+// list every event in the viewed month, sorted by date then time //
 function renderAgenda() {
   const year = current.getFullYear();
   const month = current.getMonth();
