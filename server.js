@@ -9,16 +9,35 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static('.'));
 
-const STORE_PATH = './store.json';
+// serverless filesystems are read-only except /tmp, so we read the committed
+// store.json as a seed and do all writing to /tmp.
+const SEED_PATH = './store.json';
+const STORE_PATH = process.env.VERCEL ? '/tmp/store.json' : './store.json';
 
 // everything lives here in memory. events is a flat list of event objects.
 // shape: { events: [ {id, date, title, start, end, fixed, priority, done} ], facts: [], nextId: 1 }
 let store = { events: [], facts: [], nextId: 1 };
 
 function loadStore() {
+  let raw = null;
+
   try {
-    const raw = fs.readFileSync(STORE_PATH, 'utf-8');
+    raw = fs.readFileSync(STORE_PATH, 'utf-8');
+  } catch {
+    // nothing in /tmp yet (cold start), fall back to the bundled seed file
+    try {
+      raw = fs.readFileSync(SEED_PATH, 'utf-8');
+      console.log('seeding store from bundled store.json');
+    } catch {
+      console.log('no store found, starting fresh');
+      store = { events: [], facts: [], nextId: 1 };
+      return;
+    }
+  }
+
+  try {
     store = JSON.parse(raw);
     if (!Array.isArray(store.events)) store.events = [];
     if (!Array.isArray(store.facts)) store.facts = [];
@@ -27,19 +46,20 @@ function loadStore() {
     store.events.forEach(e => { if (typeof e.done !== 'boolean') e.done = false; });
     console.log(`loaded ${store.events.length} events, ${store.facts.length} facts`);
   } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log('no store.json found, creating a fresh one');
-      saveStore();
-    } else {
-      // don't silently overwrite a file that's just malformed
-      console.error('store.json is corrupt, refusing to overwrite it:', err.message);
-      process.exit(1);
-    }
+    // never exit the process here. on serverless that kills the whole function.
+    console.error('store is corrupt, starting fresh:', err.message);
+    store = { events: [], facts: [], nextId: 1 };
   }
 }
 
 function saveStore() {
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+  try {
+    fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+  } catch (err) {
+    // a failed write shouldn't take down the request. in-memory store is still
+    // correct for the life of this instance.
+    console.error('save failed:', err.message);
+  }
 }
 
 // ---- date helpers ----
@@ -670,4 +690,9 @@ app.post('/assistant', async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log('proxy running on http://localhost:3000'));
+// on Vercel the platform imports this app; locally we listen ourselves.
+if (!process.env.VERCEL) {
+  app.listen(3000, () => console.log('proxy running on http://localhost:3000'));
+}
+
+export default app;
