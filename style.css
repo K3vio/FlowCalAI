@@ -386,9 +386,18 @@ body {
 .more { font-size: 10px; color: var(--muted); font-weight: 600; padding-left: 4px; }
 
 /* priority-colored pills — color carries urgency */
-.event.pri-1 { background: var(--pri-low); }
-.event.pri-2 { background: var(--pri-med); }
-.event.pri-3 { background: var(--pri-high); }
+.event.pri-1 { 
+  background: #34C759;
+  color: white; 
+}
+.event.pri-2 { 
+  background: #F4B400;
+  color: white; 
+}
+.event.pri-3 { 
+  background: #E53935;
+  color: white; 
+}
 
 /* fixed events get a subtle locked look: darker, with a left tick */
 .event.is-fixed {
@@ -745,15 +754,16 @@ body {
 .agenda-date .dday { font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
 
 .agenda-bar {
-  width: 4px;
+  width: 5px;
   align-self: stretch;
   border-radius: 4px;
-  background: var(--pri-med);
+  background: var(--accent);
   flex-shrink: 0;
 }
-.agenda-bar.pri-3 { background: var(--pri-high); }
-.agenda-bar.pri-1 { background: var(--pri-low); }
-.agenda-bar.pri-2 { background: var(--pri-med); }
+
+.agenda-bar.pri-1 { background: #34C759; }
+.agenda-bar.pri-2 { background: #F59E0B; }
+.agenda-bar.pri-3 { background: #EF4444; }
 
 .agenda-main { flex: 1; min-width: 0; }
 .agenda-main .atitle {
