@@ -208,7 +208,7 @@
       "fixed": true,
       "priority": 2,
       "id": "evt_21",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-16",
@@ -218,7 +218,7 @@
       "fixed": false,
       "priority": 3,
       "id": "evt_22",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-17",
@@ -348,7 +348,7 @@
       "fixed": true,
       "priority": 3,
       "id": "evt_35",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-25",
@@ -358,7 +358,7 @@
       "fixed": false,
       "priority": 1,
       "id": "evt_36",
-      "done": true
+      "done": false
     },
     {
       "date": "2026-07-27",
